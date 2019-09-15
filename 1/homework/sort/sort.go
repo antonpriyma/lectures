@@ -120,7 +120,7 @@ func reverse(words []string) []string {
 	return words
 }
 
-func removeDuplicates(ignoreCase bool, words []string) []string {
+func removeDuplicates(ignoreCase bool, words []string) (list []string) {
 	keys := make(map[string]bool)
 	list := make([]string, 0)
 	for i, word := range words {
@@ -132,7 +132,7 @@ func removeDuplicates(ignoreCase bool, words []string) []string {
 			list = append(list, words[i])
 		}
 	}
-	return list
+	return
 }
 
 func main() {
