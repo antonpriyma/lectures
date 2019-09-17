@@ -14,13 +14,13 @@ var  sortSimpleKeys  = keys{
 	sortReverse:   false,
 	sortNumbers:   false,
 	sortByColumn:  false,
-	columnSort:    0,
+	columnSort:    -1,
 	outputFile:    "",
 }
 func TestSum(t *testing.T) {
 	expected := "1\n2"
 	out := new(bytes.Buffer)
-	err := proceedFile(out,"tests/test_1.txt", sortSimpleKeys)
+	err := sortFile(out,"tests/test_1.txt", sortSimpleKeys)
 	if !reflect.DeepEqual(expected, out.String()) || err != nil {
 		t.Error("expected", expected, "result", out.String())
 	}
@@ -35,12 +35,12 @@ func TestSumReverse(t *testing.T) {
 		sortReverse:   true,
 		sortNumbers:   false,
 		sortByColumn:  false,
-		columnSort:    0,
+		columnSort:    -1,
 		outputFile:    "",
 	}
 	expected := "2\n1"
 	out := new(bytes.Buffer)
-	err := proceedFile(out,"tests/test_1.txt", sortKeys)
+	err := sortFile(out,"tests/test_1.txt", sortKeys)
 	if !reflect.DeepEqual(expected, out.String()) || err != nil {
 		t.Error("expected", expected, "result", out.String())
 	}
@@ -60,7 +60,7 @@ func Test3(t *testing.T) {
 	}
 	expected := "2 1\n1 2"
 	out := new(bytes.Buffer)
-	err := proceedFile(out,"tests/test_2.txt", sortKeys)
+	err := sortFile(out,"tests/test_2.txt", sortKeys)
 	if !reflect.DeepEqual(expected, out.String()) || err != nil {
 		t.Error("expected", expected, "result", out.String())
 	}
@@ -78,7 +78,7 @@ func Test4(t *testing.T) {
 	}
 	expected := "1 Mem\n2 MEM"
 	out := new(bytes.Buffer)
-	err := proceedFile(out,"tests/test_3.txt", sortKeys)
+	err := sortFile(out,"tests/test_3.txt", sortKeys)
 	if !reflect.DeepEqual(expected, out.String()) || err != nil {
 		t.Error("expected", expected, "result", out.String())
 	}
@@ -96,7 +96,7 @@ func Test5(t *testing.T) {
 	}
 	expected := "Mem\nMEM"
 	out := new(bytes.Buffer)
-	err := proceedFile(out,"tests/test_4.txt", sortKeys)
+	err := sortFile(out,"tests/test_4.txt", sortKeys)
 	if !reflect.DeepEqual(expected, out.String()) || err != nil {
 		t.Error("expected", expected, "result", out.String())
 	}
@@ -114,7 +114,7 @@ func Test6(t *testing.T) {
 	}
 	expected := "MEM"
 	out := new(bytes.Buffer)
-	err := proceedFile(out,"tests/test_5.txt", sortKeys)
+	err := sortFile(out,"tests/test_5.txt", sortKeys)
 	if !reflect.DeepEqual(expected, out.String()) || err != nil {
 		t.Error("expected", expected, "result", out.String())
 	}
@@ -132,7 +132,7 @@ func Test7(t *testing.T) {
 	}
 
 	out := new(bytes.Buffer)
-	err := proceedFile(out,"FILE.TXT", sortKeys)
+	err := sortFile(out,"FILE.TXT", sortKeys)
 	if err == nil {
 		t.Error("expected", "error", "result", out.String())
 	}
@@ -150,7 +150,7 @@ func Test8(t *testing.T) {
 	}
 	expected:="1\n2"
 	out := new(bytes.Buffer)
-	err := proceedFile(out,"tests/test_1.txt", sortKeys)
+	err := sortFile(nil,"tests/test_1.txt", sortKeys)
 	result,_:=ioutil.ReadFile("output_test.txt")
 
 	if !reflect.DeepEqual(expected, string(result)) || err != nil {
@@ -170,7 +170,7 @@ func Test69(t *testing.T) {
 	}
 	expected := "Mem"
 	out := new(bytes.Buffer)
-	err := proceedFile(out,"tests/test_4.txt", sortKeys)
+	err := sortFile(out,"tests/test_4.txt", sortKeys)
 	if !reflect.DeepEqual(expected, out.String()) || err != nil {
 		t.Error("expected", expected, "result", out.String())
 	}

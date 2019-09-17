@@ -1,14 +1,17 @@
 package main
 
 import (
+	"flag"
 	"github.com/mgutz/logxi/v1"
+	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
 )
+
+const none = -1
 
 type keys struct {
 	caseIgnore    bool
@@ -20,8 +23,8 @@ type keys struct {
 	outputFile    string
 }
 
-func sortSlice(words []string, keys keys) []string {//Сортировка массива строк
-	if keys.sortByColumn {
+func sortSlice(words []string, keys keys) []string { //Сортировка массива строк
+	if keys.columnSort != none {
 		if keys.caseIgnore {
 			sort.Slice(words, func(i, j int) bool {
 				log.Debug("Words[i]: ", strings.Fields(words[i]))
@@ -47,11 +50,7 @@ func sortSlice(words []string, keys keys) []string {//Сортировка ма�
 	return words
 }
 
-func proceedFile(out io.Writer, path string, keys keys) error {//Обработка и вывод
-	words, err := parseFile(path)
-	if err != nil {
-		return err
-	}
+func proceedFile(words []string, keys keys) []string { //Обработка и вывод
 	words = sortSlice(words, keys)
 	if keys.showOnlyFirst {
 		words = removeDuplicates(keys.caseIgnore, words)
@@ -59,20 +58,33 @@ func proceedFile(out io.Writer, path string, keys keys) error {//Обработ�
 	if keys.sortReverse {
 		words = reverse(words)
 	}
+	return words
+}
 
+func output(out io.Writer, words []string, keys keys) (err error) {
 	if keys.outputFile != "" {
 		err = writeToFile(keys, words)
 		if err != nil {
 			return err
 		}
 	} else {
+		if out == nil {
+			out = os.Stdout
+		}
 		err := printToConsole(out, words)
 		if err != nil {
 			return err
 		}
 	}
-
 	return nil
+}
+
+func readFile(path string) (words []string, err error) {
+	words, err = parseFile(path)
+	if err != nil {
+		return
+	}
+	return
 }
 
 func printToConsole(out io.Writer, words []string) error {
@@ -85,14 +97,17 @@ func writeToFile(keys keys, words []string) error {
 	output := strings.Join(words, "\n")
 	f, err := os.Create(keys.outputFile)
 	if err != nil {
+		err = errors.Wrap(err, "Error while creating file")
 		return err
 	}
 	_, err = f.WriteString(output)
 	if err != nil {
+		err = errors.Wrap(err, "Error while writing to file")
 		return err
 	}
 	err = f.Close()
 	if err != nil {
+		err = errors.Wrap(err, "Error while closing file")
 		return err
 	}
 	return nil
@@ -101,6 +116,7 @@ func writeToFile(keys keys, words []string) error {
 func parseFile(path string) ([]string, error) {
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
+		err = errors.Wrap(err, "Error while reading file")
 		return nil, err
 	}
 	log.Info("Read from file: ", b)
@@ -122,7 +138,7 @@ func reverse(words []string) []string {
 
 func removeDuplicates(ignoreCase bool, words []string) (list []string) {
 	keys := make(map[string]bool)
-	list := make([]string, 0)
+	list = make([]string, 0)
 	for i, word := range words {
 		if ignoreCase {
 			word = strings.ToLower(word)
@@ -135,35 +151,37 @@ func removeDuplicates(ignoreCase bool, words []string) (list []string) {
 	return
 }
 
+func sortFile(out io.Writer, path string, keys keys) error {
+	words, err := readFile(path)
+	if err != nil {
+		return err
+	}
+	words = proceedFile(words, keys)
+	err = output(out, words, keys)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func main() {
 	args := os.Args
-	if len(args)<2{
+	if len(args) < 2 {
 		panic("Usage: go run sort.go <filename>")
 	}
 	var keys keys
 	log.Debug("Args", args)
-	for i, arg := range args {
-		switch arg {
-		case "-f":
-			keys.caseIgnore = true
-		case "-u":
-			keys.showOnlyFirst = true
-		case "-r":
-			keys.sortReverse = true
-		case "-n":
-			keys.sortNumbers = true
-		case "-o":
-			keys.outputFile = args[i+1]
-		case "-k":
-			keys.sortByColumn = true
-			keys.columnSort, _ = strconv.Atoi(args[i+1])
 
-		default:
+	path := flag.String("p", "test.txt", "input file")
+	flag.BoolVar(&keys.caseIgnore, "f", false, "case ignore")
+	flag.BoolVar(&keys.showOnlyFirst, "u", false, "show only first element")
+	flag.BoolVar(&keys.sortReverse, "r", false, "sort desc")
+	flag.StringVar(&keys.outputFile, "o", "", "output file")
+	flag.IntVar(&keys.columnSort, "k", -1, "sort by column")
+	flag.Parse()
 
-		}
-	}
-	path := args[1]
-	err := proceedFile(os.Stdout, path, keys)
+	err := sortFile(nil, *path, keys)
+
 	if err != nil {
 		log.Fatal(err.Error())
 	}
