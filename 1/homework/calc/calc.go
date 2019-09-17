@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -49,11 +50,9 @@ func calc(out io.Writer, in io.Reader) error {
 
 	buff := bufio.NewReader(in)
 
-	s, err := buff.ReadString('e')
-	if err != nil {
-		if err == io.EOF {
-
-		}
+	s, err := buff.ReadString('=')
+	if err != nil && err != io.EOF {
+		return err
 	}
 	s = parseInfix(s)
 
@@ -68,7 +67,7 @@ func calc(out io.Writer, in io.Reader) error {
 			_, err = out.Write([]byte(y))
 
 			return nil
-		case "+":
+		case "+", "-", "*", "/":
 			y, err := stack.pop()
 			if err != nil {
 				return err
@@ -79,49 +78,20 @@ func calc(out io.Writer, in io.Reader) error {
 			}
 			val0, _ := strconv.Atoi(z)
 			val1, _ := strconv.Atoi(y)
-			stack.push(strconv.Itoa(val0 + val1))
-			top--
-		case "-":
-			y, err := stack.pop()
-			if err != nil {
-				return err
+			switch c {
+			case "+":
+				stack.push(strconv.Itoa(val0 + val1))
+			case "-":
+				stack.push(strconv.Itoa(val0 - val1))
+			case "*":
+				stack.push(strconv.Itoa(val0 * val1))
+			case "/":
+				if val1 == 0 {
+					return errors.New("Division by zero")
+				}
+				stack.push(strconv.Itoa(val0 / val1))
 			}
-			z, err := stack.pop()
-			if err != nil {
-				return err
-			}
-			val0, _ := strconv.Atoi(z)
-			val1, _ := strconv.Atoi(y)
-			stack.push(strconv.Itoa(val0 - val1))
-			top--
-		case "*":
-			y, err := stack.pop()
-			if err != nil {
-				return err
-			}
-			z, err := stack.pop()
-			if err != nil {
-				return err
-			}
-			val0, _ := strconv.Atoi(z)
-			val1, _ := strconv.Atoi(y)
-			stack.push(strconv.Itoa(val0 * val1))
-			top--
-		case "/":
-			y, err := stack.pop()
-			if err != nil {
-				return err
-			}
-			z, err := stack.pop()
-			if err != nil {
-				return err
-			}
-			if y == "0" {
-				return errors.New("Division by zero")
-			}
-			val0, _ := strconv.Atoi(z)
-			val1, _ := strconv.Atoi(y)
-			stack.push(strconv.Itoa(val0 / val1))
+
 			top--
 		default:
 			if c != " " {
@@ -196,5 +166,8 @@ func parseInfix(expression string) (rpn string) {
 }
 
 func main() {
-	calc(os.Stdout, os.Stdin)
+	err := calc(os.Stdout, os.Stdin)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
