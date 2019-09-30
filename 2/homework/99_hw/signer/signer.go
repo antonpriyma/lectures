@@ -7,12 +7,17 @@ import (
 	"sync"
 )
 
+var mu = &sync.Mutex{}
+
 func SingleHash(in chan interface{}, out chan interface{}) {
+
 	wg := &sync.WaitGroup{}
 	for temp := range in {
 		wg.Add(1)
 		p, _ := temp.(int)
+		mu.Lock()
 		help := DataSignerMd5(strconv.Itoa(p))
+		mu.Unlock()
 		go func() {
 			defer wg.Done()
 			SingleHashHelp(p, help, out)
