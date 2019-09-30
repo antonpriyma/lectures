@@ -9,15 +9,25 @@ import (
 
 var mu = &sync.Mutex{}
 
+type resource struct {
+	mu sync.Mutex
+}
+
+func newResourceLocker() resource {
+	return resource{mu: sync.Mutex{}}
+}
+
+var res = newResourceLocker()
+
 func SingleHash(in chan interface{}, out chan interface{}) {
 
 	wg := &sync.WaitGroup{}
 	for temp := range in {
 		wg.Add(1)
 		p, _ := temp.(int)
-		mu.Lock()
+		res.mu.Lock()
 		help := DataSignerMd5(strconv.Itoa(p))
-		mu.Unlock()
+		res.mu.Unlock()
 		go func() {
 			defer wg.Done()
 			SingleHashHelp(p, help, out)
