@@ -7,17 +7,20 @@ import (
 	"sync"
 )
 
-var mu = &sync.Mutex{}
-
-type resource struct {
+type MD5Hasher struct {
 	mu sync.Mutex
 }
 
-func newResourceLocker() resource {
-	return resource{mu: sync.Mutex{}}
+var hasher = MD5Hasher{
+	mu: sync.Mutex{},
 }
 
-var res = newResourceLocker()
+func (hasher *MD5Hasher) Hash(s string) string {
+	hasher.mu.Lock()
+	defer hasher.mu.Unlock()
+	return DataSignerMd5(s)
+
+}
 
 func SingleHash(in chan interface{}, out chan interface{}) {
 
@@ -25,9 +28,7 @@ func SingleHash(in chan interface{}, out chan interface{}) {
 	for temp := range in {
 		wg.Add(1)
 		p, _ := temp.(int)
-		res.mu.Lock()
-		help := DataSignerMd5(strconv.Itoa(p))
-		res.mu.Unlock()
+		help := hasher.Hash(strconv.Itoa(p))
 		go func() {
 			defer wg.Done()
 			SingleHashHelp(p, help, out)
