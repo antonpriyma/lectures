@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"fmt"
 	"hash/crc32"
+	"log"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -34,9 +35,10 @@ var OverheatLock = func() {
 var OverheatUnlock = func() {
 	for {
 		if swapped := atomic.CompareAndSwapUint32(&dataSignerOverheat, 1, 0); !swapped {
-			fmt.Println("OverheatUnlock happend")
+			log.Println("OverheatUnlock happend")
 			time.Sleep(time.Second)
 		} else {
+			log.Println("OverheatUnlock not happend")
 			break
 		}
 	}

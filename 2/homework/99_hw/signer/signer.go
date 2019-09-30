@@ -3,6 +3,7 @@ package main
 import (
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -12,53 +13,49 @@ func SingleHash(in chan interface{}, out chan interface{}) {
 		wg.Add(1)
 		p, _ := temp.(int)
 		help := DataSignerMd5(strconv.Itoa(p))
-		go SingleHashHelp(p, help, out, wg)
+		go func() {
+			defer wg.Done()
+			SingleHashHelp(p, help, out)
+		}()
 	}
 	wg.Wait()
 }
 
-func SingleHashHelp(p int, s string, out chan interface{}, group *sync.WaitGroup) {
-	defer group.Done()
+func SingleHashHelp(p int, s string, out chan interface{}) {
 	var result string
 	ch := make(chan string)
 	ch1 := make(chan string)
-	wg1 := &sync.WaitGroup{}
-	wg1.Add(1)
-	go func(num int, s string, ch chan string, group *sync.WaitGroup) {
-		defer group.Done()
+	go func(num int, s string, ch chan string) {
 		ch <- DataSignerCrc32(s)
 		return
-	}(0, strconv.Itoa(p), ch, wg1)
-	wg1.Add(1)
-	go func(num int, s string, ch chan string, group *sync.WaitGroup) {
-		defer group.Done()
+	}(0, strconv.Itoa(p), ch)
+	go func(num int, s string, ch chan string) {
 		ch <- DataSignerCrc32(s)
 		return
-	}(1, s, ch1, wg1)
+	}(1, s, ch1)
 	result += <-ch
 	result += "~" + <-ch1
 	out <- result
 }
 
-func MultiHashHelp(p string, out chan interface{}, group *sync.WaitGroup) {
-	defer group.Done()
+func MultiHashHelp(p string, out chan interface{}) {
 	result := ""
 	arr := make([]byte, 6, 6)
 	for i := '0'; i < '6'; i++ {
 		index, _ := strconv.Atoi(string(i))
 		arr[index] = byte(i)
 	}
-	resarr := make([]string, 6, 6)
+	resultArray := make([]string, 6, 6)
 	wg := &sync.WaitGroup{}
 	for index, elem := range arr {
 		wg.Add(1)
-		go func(num int, s string, arr []string, group *sync.WaitGroup) {
-			defer group.Done()
+		go func(num int, s string, arr []string) {
+			defer wg.Done()
 			arr[num] = DataSignerCrc32(s)
-		}(index, string(string(elem)+p), resarr, wg) // HelpHash(index, string(string(elem)+p), resarr, wg)
+		}(index, string(string(elem)+p), resultArray)
 	}
 	wg.Wait()
-	for _, elem := range resarr {
+	for _, elem := range resultArray {
 		result += elem
 	}
 	out <- result
@@ -69,7 +66,10 @@ func MultiHash(in chan interface{}, out chan interface{}) {
 	for temp := range in {
 		p, _ := temp.(string)
 		wg.Add(1)
-		go MultiHashHelp(p, out, wg)
+		go func() {
+			defer wg.Done()
+			MultiHashHelp(p, out)
+		}()
 	}
 	wg.Wait()
 }
@@ -82,13 +82,7 @@ func CombineResults(in chan interface{}, out chan interface{}) {
 		data = append(data, p)
 	}
 	sort.Strings(data)
-	lenght := len(data) - 1
-	for i := range data {
-		result += data[i]
-		if i != lenght {
-			result += "_"
-		}
-	}
+	result = strings.Join(data, "_")
 	out <- result
 }
 
